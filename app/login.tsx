@@ -16,7 +16,6 @@ export default function Login() {
     if (error) alert(error.message);
     else {
       alert("Login successful");
-      router.push("/transactions");
     }
   };
 

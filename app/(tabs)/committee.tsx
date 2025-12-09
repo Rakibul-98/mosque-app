@@ -1,15 +1,16 @@
 // app/committee.tsx
 import React, { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { supabase } from "../supabase";
+import { supabase } from "../../supabase";
 
 // 1️⃣ Define the type manually
 export type CommitteeMember = {
   id: number;
   name: string;
   position: string;
-  phone: string;
+  phone?: string;
   photo_url?: string | null;
+  created_at?: string | null;
 };
 
 export default function Committee() {
