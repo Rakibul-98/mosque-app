@@ -1,5 +1,7 @@
+// app/admin/transactions.tsx
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Button,
   ScrollView,
   StyleSheet,
@@ -7,21 +9,24 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useUser } from "../../contexts/UserContext";
 import { supabase } from "../../supabase";
 
-type Transaction = {
+export type Transaction = {
   id: number;
-  amount: number;
   type: "credit" | "debit";
-  purpose: string;
-  created_at: string;
+  amount: number;
+  purpose?: string | null;
+  created_by?: string | null; // profile id (uuid) or null
+  created_at?: string | null;
 };
 
-export default function Transactions() {
+export default function AdminTransactions() {
   const [type, setType] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { user } = useUser();
 
   useEffect(() => {
     fetchTransactions();
@@ -32,42 +37,44 @@ export default function Transactions() {
       .from("transactions")
       .select("*")
       .order("created_at", { ascending: false });
-
     if (error) {
-      console.error(error);
+      console.log(error);
       return;
     }
-
-    setTransactions(data as Transaction[]);
+    setTransactions((data as Transaction[]) || []);
   };
 
   const addTransaction = async () => {
-    const { error } = await supabase
-      .from("transactions")
-      .insert([{ type, amount: parseFloat(amount), purpose }]);
-    if (error) alert(error.message);
-    else {
-      alert("Transaction added");
-      setAmount("");
-      setPurpose("");
-      fetchTransactions();
+    if (!amount) return Alert.alert("Enter amount");
+    const payload = {
+      type,
+      amount: parseFloat(amount),
+      purpose: purpose || null,
+      created_by: user?.id || null,
+    };
+    const { error } = await supabase.from("transactions").insert([payload]);
+    if (error) {
+      Alert.alert("Error", error.message);
+      return;
     }
+    setAmount("");
+    setPurpose("");
+    fetchTransactions();
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add Transaction</Text>
-      <Text>Type</Text>
-      <View style={{ flexDirection: "row", marginBottom: 10 }}>
+      <View style={{ flexDirection: "row", marginVertical: 8 }}>
         <Button title="Credit" onPress={() => setType("credit")} />
         <View style={{ width: 10 }} />
         <Button title="Debit" onPress={() => setType("debit")} />
       </View>
       <TextInput
         placeholder="Amount"
+        keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
-        keyboardType="numeric"
         style={styles.input}
       />
       <TextInput
@@ -76,16 +83,15 @@ export default function Transactions() {
         onChangeText={setPurpose}
         style={styles.input}
       />
-      <Button title="Add Transaction" onPress={addTransaction} />
+      <Button title="Add" onPress={addTransaction} />
 
-      <Text style={{ marginTop: 20, fontSize: 20 }}>Transactions History</Text>
+      <Text style={{ marginTop: 20, fontSize: 18 }}>Recent</Text>
       {transactions.map((t) => (
-        <View key={t.id} style={styles.transaction}>
-          <Text>
-            {t.type.toUpperCase()}: {t.amount} BDT
+        <View key={t.id} style={styles.item}>
+          <Text style={{ fontWeight: "600" }}>
+            {t.type.toUpperCase()} - {t.amount} BDT
           </Text>
-          <Text>Purpose: {t.purpose}</Text>
-          <Text>Date: {new Date(t.created_at).toLocaleDateString()}</Text>
+          <Text>{t.purpose}</Text>
         </View>
       ))}
     </ScrollView>
@@ -94,12 +100,7 @@ export default function Transactions() {
 
 const styles = StyleSheet.create({
   container: { padding: 20 },
-  title: { fontSize: 24, marginBottom: 10 },
-  input: { borderWidth: 1, borderRadius: 5, padding: 10, marginBottom: 10 },
-  transaction: {
-    marginBottom: 15,
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-  },
+  title: { fontSize: 22, fontWeight: "700", marginBottom: 10 },
+  input: { borderWidth: 1, borderRadius: 6, padding: 10, marginVertical: 8 },
+  item: { padding: 10, borderWidth: 1, borderRadius: 6, marginVertical: 6 },
 });
