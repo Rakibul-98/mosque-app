@@ -11,7 +11,7 @@ import {
 import { useUser } from "../../contexts/UserContext";
 import { supabase } from "../../supabase";
 
-export type Transaction = {
+type Transaction = {
   id: number;
   type: "credit" | "debit";
   amount: number;
@@ -20,7 +20,7 @@ export type Transaction = {
   created_at?: string | null;
 };
 
-export default function AdminTransactions() {
+export default function MyTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,7 +31,7 @@ export default function AdminTransactions() {
     fetchTransactions();
   }, []);
 
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "cashier") {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Access Denied</Text>
@@ -45,6 +45,7 @@ export default function AdminTransactions() {
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
+        .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -98,11 +99,16 @@ export default function AdminTransactions() {
     return (
       <View style={styles.transactionCard}>
         <View style={styles.transactionHeader}>
-          <View style={styles.transactionInfo}>
-            <Text style={styles.transactionType}>
-              {isCredit ? "➕ Credit" : "➖ Debit"}
+          <View style={styles.transactionTypeContainer}>
+            <Text style={styles.transactionTypeIcon}>
+              {isCredit ? "➕" : "➖"}
             </Text>
-            <Text style={styles.transactionDate}>{date}</Text>
+            <View>
+              <Text style={styles.transactionType}>
+                {isCredit ? "Credit" : "Debit"}
+              </Text>
+              <Text style={styles.transactionDate}>{date}</Text>
+            </View>
           </View>
           <Text
             style={[
@@ -123,7 +129,7 @@ export default function AdminTransactions() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1565c0" />
+        <ActivityIndicator size="large" color="#1976d2" />
         <Text style={styles.loadingText}>Loading transactions...</Text>
       </View>
     );
@@ -133,25 +139,21 @@ export default function AdminTransactions() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>All Transactions</Text>
-        <Text style={styles.subtitle}>Complete transaction history</Text>
+        <Text style={styles.title}>My Transactions</Text>
+        <Text style={styles.subtitle}>Your transaction history</Text>
       </View>
 
-      {/* Summary */}
+      {/* Summary Cards */}
       <View style={styles.summaryContainer}>
-        <View style={[styles.summaryCard, styles.netCard]}>
-          <Text style={styles.summaryLabel}>Current Balance</Text>
-          <Text style={styles.summaryAmount}>{totals.net.toFixed(2)} BDT</Text>
-        </View>
         <View style={[styles.summaryCard, styles.creditCard]}>
-          <Text style={styles.summaryLabel}>Total Credit</Text>
-          <Text style={styles.summaryAmount}>
+          <Text style={styles.summaryCardLabel}>Total Credit</Text>
+          <Text style={styles.summaryCardAmount}>
             {totals.credits.toFixed(2)} BDT
           </Text>
         </View>
         <View style={[styles.summaryCard, styles.debitCard]}>
-          <Text style={styles.summaryLabel}>Total Debit</Text>
-          <Text style={styles.summaryAmount}>
+          <Text style={styles.summaryCardLabel}>Total Debit</Text>
+          <Text style={styles.summaryCardAmount}>
             {totals.debits.toFixed(2)} BDT
           </Text>
         </View>
@@ -161,7 +163,14 @@ export default function AdminTransactions() {
       {transactions.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyText}>No transactions recorded</Text>
+          <Text style={styles.emptyText}>No transactions yet</Text>
+          <Text style={styles.emptySubtext}>
+            Start by adding your first transaction
+          </Text>
+          <Button
+            title="Add Transaction"
+            onPress={() => router.push("/cashier/add-transaction")}
+          />
         </View>
       ) : (
         <FlatList
@@ -174,9 +183,12 @@ export default function AdminTransactions() {
         />
       )}
 
-      {/* Footer */}
+      {/* Action Button */}
       <View style={styles.footer}>
-        <Button title="Refresh" onPress={handleRefresh} />
+        <Button
+          title="Add New Transaction"
+          onPress={() => router.push("/cashier/add-transaction")}
+        />
       </View>
     </View>
   );
@@ -204,7 +216,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   header: {
-    backgroundColor: "#1565c0",
+    backgroundColor: "#1976d2",
     padding: 20,
     paddingTop: 40,
   },
@@ -221,18 +233,15 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     flexDirection: "row",
-    padding: 12,
-    gap: 8,
+    padding: 16,
+    gap: 12,
   },
   summaryCard: {
     flex: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
     justifyContent: "center",
     alignItems: "center",
-  },
-  netCard: {
-    backgroundColor: "#c8e6c9",
   },
   creditCard: {
     backgroundColor: "#c8e6c9",
@@ -240,35 +249,40 @@ const styles = StyleSheet.create({
   debitCard: {
     backgroundColor: "#ffcdd2",
   },
-  summaryLabel: {
-    fontSize: 11,
+  summaryCardLabel: {
+    fontSize: 12,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  summaryAmount: {
-    fontSize: 14,
+  summaryCardAmount: {
+    fontSize: 18,
     fontWeight: "700",
     color: "#333",
   },
   listContent: {
-    padding: 12,
+    padding: 16,
   },
   transactionCard: {
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#ddd",
   },
   transactionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  transactionInfo: {
+  transactionTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
+  },
+  transactionTypeIcon: {
+    fontSize: 24,
+    marginRight: 12,
   },
   transactionType: {
     fontSize: 14,
@@ -281,7 +295,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   transactionAmount: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
   },
   creditAmount: {
@@ -291,10 +305,10 @@ const styles = StyleSheet.create({
     color: "#c62828",
   },
   transactionPurpose: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
   },
@@ -302,17 +316,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   emptyIcon: {
     fontSize: 48,
     marginBottom: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
     color: "#999",
+    marginBottom: 20,
+    textAlign: "center",
   },
   footer: {
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#e0e0e0",
     backgroundColor: "#fff",

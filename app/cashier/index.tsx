@@ -3,16 +3,16 @@ import React from "react";
 import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useUser } from "../../contexts/UserContext";
 
-export default function AdminIndex() {
+export default function CashierIndex() {
   const { user, signOut } = useUser();
   const router = useRouter();
 
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "cashier") {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Access Denied</Text>
         <Text style={styles.errorSubtext}>
-          Only administrators can access this page
+          Only cashiers can access this page
         </Text>
         <Button title="Go to Home" onPress={() => router.replace("/")} />
       </View>
@@ -21,63 +21,41 @@ export default function AdminIndex() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.welcome}>Welcome, {user.name}</Text>
-        <Text style={styles.role}>👨‍💼 Administrator</Text>
+        <Text style={styles.role}>💰 Cashier</Text>
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Administration Panel</Text>
+        <Text style={styles.sectionTitle}>Transaction Management</Text>
 
-        {/* Committee Management */}
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => router.push("/admin/committee_manage")}
+          onPress={() => router.push("/cashier/add-transaction")}
         >
-          <Text style={styles.menuButtonIcon}>👥</Text>
+          <Text style={styles.menuButtonIcon}>➕</Text>
           <View style={styles.menuButtonContent}>
-            <Text style={styles.menuButtonTitle}>Manage Committee</Text>
+            <Text style={styles.menuButtonTitle}>Add Transaction</Text>
             <Text style={styles.menuButtonSubtitle}>
-              Add, edit, or view committee members
+              Record credit or debit
             </Text>
           </View>
-          <Text style={styles.menuButtonArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Transaction Monitoring */}
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => router.push("/admin/transactions")}
+          onPress={() => router.push("/cashier/my-transactions")}
         >
-          <Text style={styles.menuButtonIcon}>💰</Text>
+          <Text style={styles.menuButtonIcon}>📋</Text>
           <View style={styles.menuButtonContent}>
-            <Text style={styles.menuButtonTitle}>View All Transactions</Text>
+            <Text style={styles.menuButtonTitle}>My Transactions</Text>
             <Text style={styles.menuButtonSubtitle}>
-              Monitor all financial records
+              View your transaction history
             </Text>
           </View>
-          <Text style={styles.menuButtonArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Reports */}
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => router.push("/admin/reports")}
-        >
-          <Text style={styles.menuButtonIcon}>📊</Text>
-          <View style={styles.menuButtonContent}>
-            <Text style={styles.menuButtonTitle}>Financial Reports</Text>
-            <Text style={styles.menuButtonSubtitle}>
-              View balance and statistics
-            </Text>
-          </View>
-          <Text style={styles.menuButtonArrow}>›</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <Button
           title="Logout"
@@ -116,7 +94,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   header: {
-    backgroundColor: "#1565c0",
+    backgroundColor: "#1976d2",
     padding: 20,
     paddingTop: 40,
   },
@@ -167,10 +145,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
     marginTop: 4,
-  },
-  menuButtonArrow: {
-    fontSize: 24,
-    color: "#999",
   },
   footer: {
     padding: 20,
