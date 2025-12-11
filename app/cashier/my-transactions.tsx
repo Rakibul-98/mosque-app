@@ -1,5 +1,6 @@
+// app/cashier/my-transactions.tsx
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Button,
@@ -15,7 +16,7 @@ type Transaction = {
   id: number;
   type: "credit" | "debit";
   amount: number;
-  purpose?: string | null;
+  description?: string | null;
   created_by?: string | null;
   created_at?: string | null;
 };
@@ -27,10 +28,6 @@ export default function MyTransactions() {
   const { user } = useUser();
   const router = useRouter();
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
   if (!user || user.role !== "cashier") {
     return (
       <View style={styles.center}>
@@ -40,7 +37,8 @@ export default function MyTransactions() {
     );
   }
 
-  const fetchTransactions = async () => {
+  // FIXED: Define fetchTransactions before useEffect
+  const fetchTransactions = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("transactions")
@@ -60,7 +58,11 @@ export default function MyTransactions() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -119,8 +121,8 @@ export default function MyTransactions() {
             {isCredit ? "+" : "-"} {item.amount.toFixed(2)} BDT
           </Text>
         </View>
-        {item.purpose && (
-          <Text style={styles.transactionPurpose}>{item.purpose}</Text>
+        {item.description && (
+          <Text style={styles.transactionDescription}>{item.description}</Text>
         )}
       </View>
     );
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
   debitAmount: {
     color: "#c62828",
   },
-  transactionPurpose: {
+  transactionDescription: {
     fontSize: 13,
     color: "#666",
     marginTop: 12,

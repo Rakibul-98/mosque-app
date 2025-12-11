@@ -1,3 +1,4 @@
+// app/cashier/add-transaction.tsx
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -16,7 +17,7 @@ import { supabase } from "../../supabase";
 export default function AddTransaction() {
   const [type, setType] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
   const router = useRouter();
@@ -37,8 +38,8 @@ export default function AddTransaction() {
       return;
     }
 
-    if (!purpose.trim()) {
-      Alert.alert("Error", "Please enter a purpose");
+    if (!description.trim()) {
+      Alert.alert("Error", "Please enter a description");
       return;
     }
 
@@ -48,14 +49,17 @@ export default function AddTransaction() {
       const payload = {
         type,
         amount: parseFloat(amount),
-        purpose: purpose.trim(),
+        description: description.trim(),
         created_by: user.id,
       };
+
+      console.log("Inserting transaction:", payload);
 
       const { error } = await supabase.from("transactions").insert([payload]);
 
       if (error) {
-        Alert.alert("Error", error.message);
+        console.log("Insert error:", error);
+        Alert.alert("Error", error.message || "Failed to add transaction");
         setLoading(false);
         return;
       }
@@ -66,13 +70,14 @@ export default function AddTransaction() {
         `${type.toUpperCase()} transaction added successfully`
       );
       setAmount("");
-      setPurpose("");
+      setDescription("");
       setType("credit");
       setLoading(false);
 
       // Navigate back
       router.back();
     } catch (err: any) {
+      console.log("Exception:", err);
       Alert.alert("Error", err.message || "Failed to add transaction");
       setLoading(false);
     }
@@ -138,13 +143,13 @@ export default function AddTransaction() {
         />
       </View>
 
-      {/* Purpose Input */}
+      {/* Description Input */}
       <View style={styles.section}>
-        <Text style={styles.label}>Purpose</Text>
+        <Text style={styles.label}>Description</Text>
         <TextInput
           placeholder="e.g., Donation, Maintenance, Utility Bills"
-          value={purpose}
-          onChangeText={setPurpose}
+          value={description}
+          onChangeText={setDescription}
           style={[styles.input, styles.textArea]}
           multiline
           numberOfLines={4}
@@ -173,8 +178,8 @@ export default function AddTransaction() {
           </Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryKey}>Purpose:</Text>
-          <Text style={styles.summaryValue}>{purpose || "—"}</Text>
+          <Text style={styles.summaryKey}>Description:</Text>
+          <Text style={styles.summaryValue}>{description || "—"}</Text>
         </View>
       </View>
 
@@ -183,7 +188,7 @@ export default function AddTransaction() {
         <Button
           title={loading ? "Adding..." : "Add Transaction"}
           onPress={handleAddTransaction}
-          disabled={loading || !amount || !purpose}
+          disabled={loading || !amount || !description}
         />
       </View>
 

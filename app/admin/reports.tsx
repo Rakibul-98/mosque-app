@@ -1,3 +1,4 @@
+// app/admin/reports.tsx
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,7 +16,7 @@ type Transaction = {
   id: number;
   type: "credit" | "debit";
   amount: number;
-  purpose?: string | null;
+  description?: string | null; // CORRECTED: Changed from purpose to description
   created_by?: string | null;
   created_at?: string | null;
 };
@@ -54,7 +55,10 @@ export default function AdminReports() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (transError) throw transError;
+      if (transError) {
+        console.log("Transaction error:", transError);
+        throw transError;
+      }
 
       // Fetch profiles
       const { data: profData, error: profError } = await supabase
@@ -62,7 +66,10 @@ export default function AdminReports() {
         .select("id, name, role")
         .eq("role", "cashier");
 
-      if (profError) throw profError;
+      if (profError) {
+        console.log("Profile error:", profError);
+        throw profError;
+      }
 
       setTransactions((transData as Transaction[]) || []);
       setProfiles((profData as Profile[]) || []);

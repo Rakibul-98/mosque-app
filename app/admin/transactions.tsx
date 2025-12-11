@@ -1,3 +1,4 @@
+// app/admin/transactions.tsx
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,7 +16,7 @@ export type Transaction = {
   id: number;
   type: "credit" | "debit";
   amount: number;
-  purpose?: string | null;
+  description?: string | null; // CORRECTED: Changed from purpose to description
   created_by?: string | null;
   created_at?: string | null;
 };
@@ -113,8 +114,9 @@ export default function AdminTransactions() {
             {isCredit ? "+" : "-"} {item.amount.toFixed(2)} BDT
           </Text>
         </View>
-        {item.purpose && (
-          <Text style={styles.transactionPurpose}>{item.purpose}</Text>
+        {/* CORRECTED: Changed from item.purpose to item.description */}
+        {item.description && (
+          <Text style={styles.transactionDescription}>{item.description}</Text>
         )}
       </View>
     );
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   debitAmount: {
     color: "#c62828",
   },
-  transactionPurpose: {
+  transactionDescription: {
     fontSize: 12,
     color: "#666",
     marginTop: 8,

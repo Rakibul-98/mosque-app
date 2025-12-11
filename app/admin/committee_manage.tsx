@@ -1,6 +1,7 @@
+// app/admin/committee_manage.tsx
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -36,10 +37,6 @@ export default function CommitteeManage() {
   const { user } = useUser();
   const router = useRouter();
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
   if (!user || user.role !== "admin") {
     return (
       <View style={styles.center}>
@@ -49,25 +46,32 @@ export default function CommitteeManage() {
     );
   }
 
-  const fetchMembers = async () => {
+  // FIXED: Define fetchMembers before useEffect
+  const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("committee")
+        .from("committee_members")
         .select("*")
         .order("id", { ascending: false });
 
       if (error) {
         console.log("Error fetching members:", error);
+        Alert.alert("Error", "Failed to fetch committee members");
         return;
       }
 
       setMembers((data as CommitteeMember[]) || []);
     } catch (err) {
       console.log("Exception:", err);
+      Alert.alert("Error", "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   const pickImage = async () => {
     try {
@@ -145,7 +149,14 @@ export default function CommitteeManage() {
         }
       }
 
-      const { error } = await supabase.from("committee").insert([
+      console.log("Inserting member:", {
+        name: name.trim(),
+        position: position.trim(),
+        phone: phone.trim() || null,
+        photo_url,
+      });
+
+      const { error } = await supabase.from("committee_members").insert([
         {
           name: name.trim(),
           position: position.trim(),
@@ -155,7 +166,8 @@ export default function CommitteeManage() {
       ]);
 
       if (error) {
-        Alert.alert("Error", error.message);
+        console.log("Insert error:", error);
+        Alert.alert("Error", error.message || "Failed to add member");
         setSubmitting(false);
         return;
       }
@@ -169,6 +181,7 @@ export default function CommitteeManage() {
       setSubmitting(false);
       fetchMembers();
     } catch (err: any) {
+      console.log("Exception:", err);
       Alert.alert("Error", err.message || "Failed to add member");
       setSubmitting(false);
     }
@@ -186,11 +199,12 @@ export default function CommitteeManage() {
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from("committee")
+                .from("committee_members")
                 .delete()
                 .eq("id", id);
 
               if (error) {
+                console.log("Delete error:", error);
                 Alert.alert("Error", error.message);
                 return;
               }
@@ -198,6 +212,7 @@ export default function CommitteeManage() {
               Alert.alert("Success", "Member deleted successfully");
               fetchMembers();
             } catch (err: any) {
+              console.log("Exception:", err);
               Alert.alert("Error", err.message || "Failed to delete member");
             }
           },
@@ -304,11 +319,15 @@ export default function CommitteeManage() {
           members.map((member) => (
             <View key={member.id} style={styles.memberCard}>
               <View style={styles.memberContent}>
-                {member.photo_url && (
+                {member.photo_url ? (
                   <Image
                     source={{ uri: member.photo_url }}
                     style={styles.memberPhoto}
                   />
+                ) : (
+                  <View style={styles.memberPhotoPlaceholder}>
+                    <Text style={styles.placeholderText}>No Photo</Text>
+                  </View>
                 )}
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberName}>{member.name}</Text>
@@ -463,6 +482,19 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: 12,
+  },
+  memberPhotoPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 12,
+    backgroundColor: "#e0e0e0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    fontSize: 10,
+    color: "#999",
   },
   memberInfo: {
     flex: 1,
