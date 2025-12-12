@@ -1,50 +1,101 @@
-// app/(tabs)/home.tsx
-import { useRouter } from "expo-router";
+// app/(tabs)/home.tsx - Example
 import React, { useEffect, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../supabase";
 
 export default function Home() {
-  const [total, setTotal] = useState<number>(0);
-  const router = useRouter();
+  const [balance, setBalance] = useState(0);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchTotal();
+    loadPublicData();
   }, []);
 
-  const fetchTotal = async () => {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("type, amount");
-    if (error) {
-      console.log(error);
-      return;
+  const loadPublicData = async () => {
+    try {
+      // Get total balance
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select("type, amount")
+        .order("created_at", { ascending: false });
+
+      let total = 0;
+      transactions?.forEach((t) => {
+        if (t.type === "income") total += t.amount;
+        else total -= t.amount;
+      });
+      setBalance(total);
+
+      // Get recent transactions
+      const { data: recent } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      setRecentTransactions(recent || []);
+    } catch (err) {
+      console.log("Error loading public data:", err);
     }
-    const rows = data as any[];
-    let sum = 0;
-    rows.forEach((t: any) => {
-      if (t.type === "credit") sum += parseFloat(t.amount);
-      else sum -= parseFloat(t.amount);
-    });
-    setTotal(sum);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Total Funds</Text>
-      <Text style={styles.amount}>{total} BDT</Text>
-      <Button
-        title="View Committee"
-        onPress={() => router.push("/committee")}
-      />
-      <View style={{ height: 10 }} />
-      <Button title="Staff Login" onPress={() => router.push("/login")} />
-    </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>🕌 Mosque Funds</Text>
+        <Text style={styles.balance}>
+          Current Balance: ৳{balance.toFixed(2)}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        {recentTransactions.map((tx) => (
+          <View key={tx.id} style={styles.transactionItem}>
+            <Text style={styles.transactionDesc}>{tx.description}</Text>
+            <Text style={tx.type === "income" ? styles.credit : styles.debit}>
+              {tx.type === "income" ? "+" : "-"}৳{tx.amount}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.note}>
+        <Text style={styles.noteText}>
+          💡 Only authorized staff can add/modify transactions
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center" },
-  title: { fontSize: 22, fontWeight: "600", marginBottom: 8 },
-  amount: { fontSize: 28, fontWeight: "700", marginBottom: 20 },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  header: { backgroundColor: "#1565c0", padding: 20 },
+  title: { fontSize: 24, color: "white", fontWeight: "bold" },
+  balance: { fontSize: 28, color: "white", marginTop: 10, fontWeight: "bold" },
+  section: {
+    backgroundColor: "white",
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  transactionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  transactionDesc: { fontSize: 14, color: "#333" },
+  credit: { color: "#2e7d32", fontWeight: "bold" },
+  debit: { color: "#c62828", fontWeight: "bold" },
+  note: {
+    margin: 15,
+    padding: 10,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 8,
+  },
+  noteText: { color: "#1565c0", textAlign: "center" },
 });

@@ -22,7 +22,6 @@ export default function Committee() {
 
   const fetchCommittee = async () => {
     try {
-      // CORRECTED: Changed from "committee" to "committee_members"
       const { data, error } = await supabase
         .from("committee_members")
         .select("*")

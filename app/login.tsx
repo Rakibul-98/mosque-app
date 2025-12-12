@@ -1,3 +1,4 @@
+// app/login.tsx - Simplified version
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -68,151 +69,143 @@ export default function Login() {
       return;
     }
 
-    // Success - sign in and route based on role
     setLoading(true);
-    signIn({
-      id: profile.id,
-      name: profile.name,
-      role: profile.role,
-      pin: profile.pin,
-    });
-    setPin("");
 
-    // Route based on role
-    if (profile.role === "admin") {
-      router.replace("/admin");
-    } else if (profile.role === "cashier") {
-      router.replace("/cashier");
+    try {
+      // Sign in to app context (no Supabase Auth needed)
+      signIn(profile);
+
+      setPin("");
+      setLoading(false);
+
+      // Route based on role
+      if (profile.role === "admin") {
+        router.replace("/admin");
+      } else if (profile.role === "cashier") {
+        router.replace("/cashier");
+      }
+    } catch (err: any) {
+      console.log("Login exception:", err);
+      Alert.alert("Error", err.message || "Login failed");
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const renderProfile = ({ item }: { item: ProfileRow }) => (
+    <TouchableOpacity
+      style={[
+        styles.profileItem,
+        selectedId === item.id && styles.profileItemSelected,
+      ]}
+      onPress={() => setSelectedId(item.id)}
+    >
+      <View style={styles.profileContent}>
+        <Text style={styles.profileName}>{item.name}</Text>
+        <Text style={styles.profileRole}>
+          {item.role === "admin" ? "👨‍💼 Admin" : "💰 Cashier"}
+        </Text>
+      </View>
+      {selectedId === item.id && <Text style={styles.checkmark}>✓</Text>}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Staff Login</Text>
-      <Text style={styles.subtitle}>
-        Enter your PIN to access staff features
-      </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>🕌 Mosque Management</Text>
+        <Text style={styles.subtitle}>Staff Login</Text>
+      </View>
 
-      <Text style={styles.label}>Select User</Text>
-      <FlatList
-        style={styles.userList}
-        data={profiles}
-        keyExtractor={(i) => i.id}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => setSelectedId(item.id)}
-            style={[
-              styles.userRow,
-              selectedId === item.id && styles.userRowSelected,
-            ]}
-          >
-            <Text style={styles.userName}>{item.name}</Text>
-            <Text style={styles.userRole}>
-              {item.role === "admin" ? "👨‍💼 Administrator" : "💰 Cashier"}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.content}>
+        <Text style={styles.label}>Select User</Text>
+        <FlatList
+          style={styles.userList}
+          data={profiles}
+          renderItem={renderProfile}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+        />
 
-      <TextInput
-        placeholder="Enter 4-digit PIN"
-        value={pin}
-        onChangeText={setPin}
-        keyboardType="numeric"
-        secureTextEntry
-        maxLength={4}
-        editable={!!selectedId}
-        style={[styles.input, !selectedId && styles.inputDisabled]}
-      />
+        <Text style={styles.label}>Enter PIN</Text>
+        <TextInput
+          placeholder="Enter your PIN"
+          value={pin}
+          onChangeText={setPin}
+          keyboardType="number-pad"
+          secureTextEntry
+          style={styles.pinInput}
+          editable={!loading && selectedId !== null}
+        />
 
-      <Button
-        title={loading ? "Logging in..." : "Login"}
-        onPress={handleLogin}
-        disabled={loading || !selectedId || pin.length !== 4}
-      />
+        <View style={styles.buttonContainer}>
+          <Button
+            title={loading ? "Logging in..." : "Login"}
+            onPress={handleLogin}
+            disabled={loading || !selectedId || !pin}
+          />
+        </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>← Back to Home</Text>
-      </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Back to Home"
+            color="#999"
+            onPress={() => router.replace("/")}
+          />
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          For security, only authorized staff can log in
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-    backgroundColor: "#f5f5f5",
+  // Keep your existing styles
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  header: {
+    backgroundColor: "#1565c0",
+    padding: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: "#333",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 20,
-  },
+  title: { fontSize: 28, fontWeight: "700", color: "#fff", marginBottom: 8 },
+  subtitle: { fontSize: 16, color: "#fff", opacity: 0.9 },
+  content: { flex: 1, padding: 20 },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginBottom: 10,
     color: "#333",
+    marginBottom: 12,
+    marginTop: 16,
   },
-  userList: {
-    maxHeight: 220,
-    marginBottom: 20,
+  userList: { borderRadius: 8, backgroundColor: "#fff", marginBottom: 12 },
+  profileItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  userRow: {
-    padding: 12,
+  profileItemSelected: { backgroundColor: "#e3f2fd" },
+  profileContent: { flex: 1 },
+  profileName: { fontSize: 16, fontWeight: "600", color: "#333" },
+  profileRole: { fontSize: 12, color: "#999", marginTop: 4 },
+  checkmark: { fontSize: 20, color: "#1565c0", fontWeight: "bold" },
+  pinInput: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
-    marginBottom: 8,
+    padding: 12,
     backgroundColor: "#fff",
-  },
-  userRowSelected: {
-    backgroundColor: "#e3f2fd",
-    borderColor: "#1976d2",
-    borderWidth: 2,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-  userRole: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 16,
     fontSize: 18,
     letterSpacing: 2,
-    textAlign: "center",
-    backgroundColor: "#fff",
   },
-  inputDisabled: {
-    backgroundColor: "#f0f0f0",
-    color: "#999",
-  },
-  backButton: {
-    marginTop: 20,
-    padding: 10,
-  },
-  backButtonText: {
-    color: "#1976d2",
-    textAlign: "center",
-    fontSize: 14,
-  },
+  buttonContainer: { marginTop: 16, marginBottom: 8 },
+  footer: { padding: 20, alignItems: "center" },
+  footerText: { fontSize: 12, color: "#999", textAlign: "center" },
 });

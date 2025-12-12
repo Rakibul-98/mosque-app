@@ -28,17 +28,14 @@ export default function MyTransactions() {
   const { user } = useUser();
   const router = useRouter();
 
-  if (!user || user.role !== "cashier") {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Access Denied</Text>
-        <Button title="Go to Home" onPress={() => router.replace("/")} />
-      </View>
-    );
-  }
-
-  // FIXED: Define fetchTransactions before useEffect
+  // FIXED: All hooks are called UNCONDITIONALLY at the top level
+  // Define fetchTransactions using useCallback BEFORE checking user role
   const fetchTransactions = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("transactions")
@@ -58,8 +55,9 @@ export default function MyTransactions() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user.id]);
+  }, [user?.id]);
 
+  // useEffect is called unconditionally
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -127,6 +125,16 @@ export default function MyTransactions() {
       </View>
     );
   };
+
+  // NOW we can check user role and return early (after all hooks are called)
+  if (!user || user.role !== "cashier") {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Access Denied</Text>
+        <Button title="Go to Home" onPress={() => router.replace("/")} />
+      </View>
+    );
+  }
 
   if (loading) {
     return (

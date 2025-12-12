@@ -1,4 +1,4 @@
-// app/cashier/add-transaction.tsx
+// app/cashier/add-transaction.tsx - Simplified
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -12,24 +12,14 @@ import {
   View,
 } from "react-native";
 import { useUser } from "../../contexts/UserContext";
-import { supabase } from "../../supabase";
 
 export default function AddTransaction() {
-  const [type, setType] = useState<"credit" | "debit">("credit");
+  const [type, setType] = useState<"income" | "expense">("income");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user } = useUser();
+  const { user, authenticatedSupabase } = useUser();
   const router = useRouter();
-
-  if (!user || user.role !== "cashier") {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Access Denied</Text>
-        <Button title="Go to Home" onPress={() => router.replace("/")} />
-      </View>
-    );
-  }
 
   const handleAddTransaction = async () => {
     // Validation
@@ -43,6 +33,16 @@ export default function AddTransaction() {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
+    if (user.role !== "cashier" && user.role !== "admin") {
+      Alert.alert("Error", "Only cashiers and admins can add transactions");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -50,12 +50,15 @@ export default function AddTransaction() {
         type,
         amount: parseFloat(amount),
         description: description.trim(),
-        created_by: user.id,
+        profile_id: user?.id,
       };
 
       console.log("Inserting transaction:", payload);
 
-      const { error } = await supabase.from("transactions").insert([payload]);
+      // Use the authenticated supabase client
+      const { error } = await authenticatedSupabase
+        .from("transactions")
+        .insert([payload]);
 
       if (error) {
         console.log("Insert error:", error);
@@ -71,7 +74,7 @@ export default function AddTransaction() {
       );
       setAmount("");
       setDescription("");
-      setType("credit");
+      setType("income");
       setLoading(false);
 
       // Navigate back
@@ -82,6 +85,16 @@ export default function AddTransaction() {
       setLoading(false);
     }
   };
+
+  // Check user role
+  if (!user || (user.role !== "cashier" && user.role !== "admin")) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Access Denied. Cashier/Admin only.</Text>
+        <Button title="Go to Home" onPress={() => router.replace("/")} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -97,14 +110,14 @@ export default function AddTransaction() {
           <TouchableOpacity
             style={[
               styles.typeButton,
-              type === "credit" && styles.typeButtonActive,
+              type === "income" && styles.typeButtonActive,
             ]}
-            onPress={() => setType("credit")}
+            onPress={() => setType("expense")}
           >
             <Text
               style={[
                 styles.typeButtonText,
-                type === "credit" && styles.typeButtonTextActive,
+                type === "income" && styles.typeButtonTextActive,
               ]}
             >
               ➕ Credit (Income)
@@ -114,14 +127,14 @@ export default function AddTransaction() {
           <TouchableOpacity
             style={[
               styles.typeButton,
-              type === "debit" && styles.typeButtonActive,
+              type === "expense" && styles.typeButtonActive,
             ]}
-            onPress={() => setType("debit")}
+            onPress={() => setType("expense")}
           >
             <Text
               style={[
                 styles.typeButtonText,
-                type === "debit" && styles.typeButtonTextActive,
+                type === "expense" && styles.typeButtonTextActive,
               ]}
             >
               ➖ Debit (Expense)
@@ -163,7 +176,7 @@ export default function AddTransaction() {
         <View style={styles.summaryRow}>
           <Text style={styles.summaryKey}>Type:</Text>
           <Text style={styles.summaryValue}>
-            {type === "credit" ? "Credit (Income)" : "Debit (Expense)"}
+            {type === "income" ? "Credit (Income)" : "Debit (Expense)"}
           </Text>
         </View>
         <View style={styles.summaryRow}>
@@ -171,7 +184,7 @@ export default function AddTransaction() {
           <Text
             style={[
               styles.summaryValue,
-              type === "credit" ? styles.creditText : styles.debitText,
+              type === "income" ? styles.creditText : styles.debitText,
             ]}
           >
             {amount ? `${amount} BDT` : "—"}

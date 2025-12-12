@@ -37,16 +37,8 @@ export default function CommitteeManage() {
   const { user } = useUser();
   const router = useRouter();
 
-  if (!user || user.role !== "admin") {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Access Denied</Text>
-        <Button title="Go to Home" onPress={() => router.replace("/")} />
-      </View>
-    );
-  }
-
-  // FIXED: Define fetchMembers before useEffect
+  // FIXED: All hooks are called UNCONDITIONALLY at the top level
+  // Define fetchMembers using useCallback BEFORE checking user role
   const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -69,6 +61,7 @@ export default function CommitteeManage() {
     }
   }, []);
 
+  // useEffect is called unconditionally
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
@@ -220,6 +213,16 @@ export default function CommitteeManage() {
       ]
     );
   };
+
+  // NOW we can check user role and return early (after all hooks are called)
+  if (!user || user.role !== "admin") {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Access Denied</Text>
+        <Button title="Go to Home" onPress={() => router.replace("/")} />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
